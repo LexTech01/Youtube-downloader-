@@ -1,151 +1,162 @@
 import threading
 import requests
-from downloader_model import VideoModel
-from downloader_view import VideoView
-from tkinter import  messagebox
+from io import BytesIO
+from yt_dlp import YoutubeDL
+from PIL import Image, ImageTk
+import os
+import sys
+import subprocess
+
 class VideoController:
-    """Controller: Handles user interactions and coordinates Model-View"""
-    
-    def __init__(self, root):
-        self.model = VideoModel()
-        self.view = VideoView(root)
-        
-        # Bind events
-        self.view.load_btn.config(command=self.load_video)
-        self.view.download_btn.config(command=self.start_download)
-        self.view.format_combo.bind('<<ComboboxSelected>>', self.on_format_selected)
-        self.view.root.bind('<Configure>', self.on_resize)
-    
+    def __init__(self, model, view):
+        self.model = model
+        self.view = view
+        self.view.load_btn.configure(command=self.load_video)
+        self.view.download_btn.configure(command=self.download_video)
+        self.view.history_btn.configure(command=self.show_history_popup)
+
+    # Load video info
     def load_video(self):
-        """Handle load video action."""
-        url = self.model.sanitize_url(self.view.get_url())
-        
-        if not url:
-            messagebox.showerror("Error", "Please paste a valid YouTube URL.")
-            return
-        
-        self.view.set_status("Loading video info...", "yellow")
-        self.view.set_button_state("load", "disabled")
-        
-        threading.Thread(target=self._load_video_thread, args=(url,), daemon=True).start()
-    
-    def _load_video_thread(self, url):
-        """Background thread for loading video."""
-        try:
-            # Fetch video info
-            self.model.fetch_video_info(url)
-            
-            # Process formats
-            formats = self.model.process_formats()
-            
-            # Update view
-            self.view.root.after(0, self._update_view_after_load, formats)
-            
-        except Exception as e:
-            self.view.root.after(0, lambda: self.view.set_status(f"Error: {e}", "red"))
-            self.view.root.after(0, lambda: self.view.set_button_state("load", "normal"))
-    
-    def _update_view_after_load(self, formats):
-        """Update view after video is loaded."""
-        # Set formats
-        self.view.set_formats(formats)
-        
-        # Set video metadata
-        metadata = self.model.get_video_metadata()
-        self.view.set_video_info(metadata)
-        
-        # Load thumbnail
-        thumb_url = self.model.get_thumbnail_url()
-        if thumb_url:
+        def task():
+            url = self.view.entry.get().strip()
+            if not url:
+                self.view.show_message("Error", "Please paste a YouTube URL.")
+                return
+            self.view.details_label.configure(text="Loading video info...")
             try:
-                resp = requests.get(thumb_url)
-                self.view.load_thumbnail(resp.content)
-            except:
-                pass
-        
-        self.view.set_status("✅ Video loaded successfully!", "#00FF99")
-        self.view.set_button_state("load", "normal")
-    
-    def on_format_selected(self, event):
-        """Handle format selection."""
-        resolution = self.view.get_selected_resolution()
-        if resolution:
-            fmt = self.model.get_format_by_resolution(resolution)
-            if fmt:
-                self.view.set_format_details(fmt)
-    
-    def start_download(self):
-        """Handle download action."""
-        if not self.model.video_info:
-            messagebox.showwarning("Load First", "Please load a video first.")
-            return
-        
-        resolution = self.view.get_selected_resolution()
-        if not resolution:
-            messagebox.showwarning("No Resolution", "Select a resolution before downloading.")
-            return
-        
-        if self.model.is_downloading:
-            messagebox.showwarning("Downloading", "A download is already in progress.")
-            return
-        
-        self.model.is_downloading = True
-        self.view.set_button_state("download", "disabled", "Downloading...", "#555")
-        
-        threading.Thread(target=self._download_thread, args=(resolution,), daemon=True).start()
-    
-    def _download_thread(self, resolution):
-        """Background thread for downloading."""
-        try:
-            self.view.root.after(0, lambda: self.view.set_status("Downloading...", "yellow"))
-            
-            self.model.download_video(resolution, self.progress_hook)
-            
-            metadata = self.model.get_video_metadata()
-            success_msg = f"✅ Download Complete! Saved to {self.model.download_path}"
-            
-            self.view.root.after(0, lambda: self.view.set_status(success_msg, "#00FF99"))
-            self.view.root.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Video downloaded successfully!\n\nTitle: {metadata['title']}\nSaved to: {self.model.download_path}"
-            ))
-            
-        except Exception as e:
-            self.view.root.after(0, lambda: self.view.set_status(f"Download failed: {e}", "red"))
-            self.view.root.after(0, lambda: messagebox.showerror("Error", f"Download failed:\n\n{str(e)}"))
-        
-        finally:
-            self.model.is_downloading = False
-            self.view.root.after(0, lambda: self.view.set_button_state("download", "normal", "Download Video", "#FFD700"))
-            self.view.root.after(0, self.view.reset_progress)
-    
-    def progress_hook(self, d):
-        """Handle download progress updates."""
-        if d['status'] == 'downloading':
+                with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+                    info = ydl.extract_info(url, download=False)
+            except Exception as e:
+                self.view.show_message("Load Error", f"Could not load video info:\n{e}")
+                self.view.details_label.configure(text="")
+                return
+
+            title = info.get("title", "Unknown Title")
+            self.view.video_title.configure(text=title)
+
+            thumb_url = info.get("thumbnail")
+            if thumb_url:
+                try:
+                    img_data = requests.get(thumb_url, timeout=8).content
+                    img = Image.open(BytesIO(img_data)).convert("RGBA")
+                    img.thumbnail((300, 200))
+                    tk_img = ImageTk.PhotoImage(img)
+                    self.view.placeholder.configure(image=tk_img, text="")
+                    self.view.placeholder.image = tk_img
+                except:
+                    self.view.placeholder.configure(text="Thumbnail failed")
+
+            formats = info.get("formats", [])
+            resolutions = sorted(
+                set(f"{f.get('height')}p" for f in formats if f.get("height") and f.get("acodec") != "none"),
+                key=lambda x: int(x.replace("p", ""))
+            )
+            if not resolutions:
+                resolutions = ["original"]
+            self.view.res_menu.configure(values=resolutions)
+            self.view.res_var.set(resolutions[-1])
+            self.view.details_label.configure(text="Video info loaded.")
+
+        threading.Thread(target=task, daemon=True).start()
+
+    # Download video
+    def download_video(self):
+        def task():
+            url = self.view.entry.get().strip()
+            res = self.view.res_var.get()
+            if not url:
+                self.view.show_message("Error", "Paste a video URL first.")
+                return
+            self.view.details_label.configure(text="Preparing download...")
+
+            if res.lower() == "original":
+                fmt = "bestvideo+bestaudio/best"
+            else:
+                try:
+                    height = int(res.replace("p", ""))
+                    fmt = f"bestvideo[height<={height}]+bestaudio/best"
+                except:
+                    fmt = "bestvideo+bestaudio/best"
+
+            ydl_opts = {
+                "format": fmt,
+                "quiet": True,
+                "outtmpl": os.path.join(self.model.DOWNLOAD_DIR, "%(title)s.%(ext)s"),
+                "progress_hooks": []
+            }
+
+            def hook(d):
+                if d["status"] == "downloading":
+                    total = d.get("total_bytes") or d.get("total_bytes_estimate", 0)
+                    done = d.get("downloaded_bytes", 0)
+                    frac = done / total if total else 0
+                    speed = int((d.get("speed") or 0) / 1024)
+                    eta = d.get("eta", 0)
+                    self.view.progress_bar.set(frac)
+                    self.view.details_label.configure(
+                        text=f"Downloading {int(frac*100)}% | {speed} KB/s | ETA {eta}s"
+                    )
+                elif d["status"] == "finished":
+                    self.view.progress_bar.set(1)
+                    self.view.details_label.configure(text="Finalizing...")
+
+            ydl_opts["progress_hooks"].append(hook)
+
             try:
-                downloaded = d.get('downloaded_bytes', 0)
-                total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
-                
-                if total > 0:
-                    percent = int((downloaded / total) * 100)
-                    self.view.root.after(0, lambda: self.view.update_progress(percent))
-                    
-                    # Update status with speed and ETA
-                    speed = d.get('speed', 0)
-                    eta = d.get('eta', 0)
-                    if speed:
-                        speed_mb = speed / (1024 * 1024)
-                        status_text = f"Downloading... Speed: {speed_mb:.2f} MB/s"
-                        if eta:
-                            status_text += f" | ETA: {eta}s"
-                        self.view.root.after(0, lambda: self.view.set_status(status_text, "yellow"))
-            except:
-                pass
-        elif d['status'] == 'finished':
-            self.view.root.after(0, lambda: self.view.update_progress(100))
-            self.view.root.after(0, lambda: self.view.set_status("Processing... Almost done!", "yellow"))
-    
-    def on_resize(self, event):
-        """Handle window resize."""
-        if event.widget == self.view.root and self.view.original_thumbnail_data:
-            self.view.root.after(100, self.view.resize_thumbnail)
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url)
+                file_path = ydl.prepare_filename(info)
+                self.model.add_to_history(file_path)
+                self.view.show_message("Success", "Video saved to Downloads folder.")
+                self.view.details_label.configure(text="Download complete.")
+            except Exception as e:
+                self.view.show_message("Error", f"Download failed:\n{e}")
+                self.view.details_label.configure(text="")
+
+        threading.Thread(target=task, daemon=True).start()
+
+    # Show download history
+    def show_history_popup(self):
+        history = self.model.get_history()
+        if not history:
+            self.view.show_message("History", "No videos downloaded yet.")
+            return
+        import customtkinter as ctk
+        popup = ctk.CTkToplevel(self.view.root)
+        popup.title("Download History")
+        popup.transient(self.view.root)
+        popup.grab_set()
+        popup.configure(fg_color="#FFFCEF")
+
+        # Size and center
+        popup_w, popup_h = 400, 300
+        self.view.root.update_idletasks()
+        root_x, root_y = self.view.root.winfo_x(), self.view.root.winfo_y()
+        root_w, root_h = self.view.root.winfo_width(), self.view.root.winfo_height()
+        pos_x = root_x + (root_w // 2) - (popup_w // 2)
+        pos_y = root_y + (root_h // 2) - (popup_h // 2)
+        popup.geometry(f"{popup_w}x{popup_h}+{pos_x}+{pos_y}")
+
+        history_text = "\n".join(f"{i+1}. {os.path.basename(v)}" for i, v in enumerate(history))
+        history_lbl = ctk.CTkLabel(popup, text=history_text, justify="left", anchor="nw", wraplength=380)
+        history_lbl.pack(padx=10, pady=10, fill="both", expand=True)
+
+        # Click to play
+        def on_click(event):
+            index = int(event.y // 20)
+            if 0 <= index < len(history):
+                try:
+                    if os.name == "nt":
+                        os.startfile(history[index])
+                    elif sys.platform == "darwin":
+                        subprocess.call(["open", history[index]])
+                    else:
+                        subprocess.call(["xdg-open", history[index]])
+                except Exception as e:
+                    self.view.show_message("Error", f"Unable to play video:\n{e}")
+
+        history_lbl.bind("<Button-1>", on_click)
+
+        # Close
+        close_btn = ctk.CTkButton(popup, text="Close", command=popup.destroy)
+        close_btn.pack(pady=10)
