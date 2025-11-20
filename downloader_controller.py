@@ -28,8 +28,8 @@ class VideoController:
                 with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
                     info = ydl.extract_info(url, download=False)
             except Exception as e:
-                self.view.show_message("Load Error", f"Could not load video info:\n{e}")
-                self.view.details_label.configure(text="")
+                self.view.show_message("Load Error", f"Enter a valid url ")
+                self.view.details_label.configure(text="", )
                 return
 
             title = info.get("title", "Unknown Title")
@@ -154,7 +154,7 @@ class VideoController:
                     else:
                         subprocess.call(["xdg-open", history[index]])
                 except Exception as e:
-                    self.view.show_message("Error", f"Unable to play video:\n{e}")
+                    self.view.show_message("Error", f"Unable to play video")
 
         history_lbl.bind("<Button-1>", on_click)
         popup_text= ctk.CTkLabel(popup,text="Click on history/n to play video")
