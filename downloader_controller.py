@@ -23,6 +23,7 @@ class VideoController:
                 self.view.show_message("Error", "Please paste a YouTube URL.")
                 return
             self.view.details_label.configure(text="Loading video info...")
+        
             try:
                 with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
                     info = ydl.extract_info(url, download=False)
@@ -126,7 +127,7 @@ class VideoController:
         popup.title("Download History")
         popup.transient(self.view.root)
         popup.grab_set()
-        popup.configure(fg_color="#FFFCEF")
+        popup.configure(fg_color="#0E0C0C")
 
         # Size and center
         popup_w, popup_h = 400, 300
@@ -138,7 +139,7 @@ class VideoController:
         popup.geometry(f"{popup_w}x{popup_h}+{pos_x}+{pos_y}")
 
         history_text = "\n".join(f"{i+1}. {os.path.basename(v)}" for i, v in enumerate(history))
-        history_lbl = ctk.CTkLabel(popup, text=history_text, justify="left", anchor="nw", wraplength=380)
+        history_lbl = ctk.CTkLabel(popup, text=history_text, justify="left", anchor="nw", wraplength=380,text_color="white")
         history_lbl.pack(padx=10, pady=10, fill="both", expand=True)
 
         # Click to play
@@ -156,7 +157,13 @@ class VideoController:
                     self.view.show_message("Error", f"Unable to play video:\n{e}")
 
         history_lbl.bind("<Button-1>", on_click)
+        popup_text= ctk.CTkLabel(popup,text="Click on history/n to play video")
+        popup_text.place(anchor="s")
+
+
+        
 
         # Close
         close_btn = ctk.CTkButton(popup, text="Close", command=popup.destroy)
         close_btn.pack(pady=10)
+

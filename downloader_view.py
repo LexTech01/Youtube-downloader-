@@ -6,12 +6,6 @@ ctk.set_window_scaling(1.0)
 ctk.set_default_color_theme("blue")
 ctk.set_appearance_mode("dark")
 
-def start_app():
-    root = ctk.CTk()
-    root.title("WinBix YouTube Downloader")
-    root.geometry("850x980")
-    root.minsize(800, 950)
-
 class VideoView:
     def __init__(self, root):
         self.root = root
