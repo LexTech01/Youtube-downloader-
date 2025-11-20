@@ -1,12 +1,23 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+ctk.set_widget_scaling(1.0)
+ctk.set_window_scaling(1.0)
+ctk.set_default_color_theme("blue")
+ctk.set_appearance_mode("dark")
+
+def start_app():
+    root = ctk.CTk()
+    root.title("WinBix YouTube Downloader")
+    root.geometry("850x980")
+    root.minsize(800, 950)
+
 class VideoView:
     def __init__(self, root):
         self.root = root
         self.root.title("WinBix Youtube Videos Downloader")
         self.root.geometry("850x950")
-        self.root.minsize(800, 900)
+        self.root.minsize(800, 930)
         self.root.configure(fg_color="#5C899D")
 
         # Title
@@ -19,12 +30,12 @@ class VideoView:
         self.frame.place(relx=0.5, rely=0.55, anchor="center")
 
         # Thumbnail
-        self.placeholder = ctk.CTkLabel(self.frame, corner_radius=20, text="No Video Loaded",
-                                        fg_color="#000000", bg_color="#FFFCEF")
+        self.placeholder = ctk.CTkLabel(self.frame, corner_radius=20, text="No Video Loaded",text_color="white",
+                                        fg_color="#0A0707", bg_color="#FFFCEF")
         self.placeholder.place(relx=0.28, rely=0.05, relwidth=0.45, relheight=0.35)
 
         # Entry field
-        self.entry = ctk.CTkEntry(self.frame, width=15, fg_color="#000000", bg_color="#FFFCEF", corner_radius=10)
+        self.entry = ctk.CTkEntry(self.frame, width=15, fg_color="#000000", bg_color="#FAFAFA", corner_radius=10,text_color="white")
         self.entry.place(relx=0.1, rely=0.64, relwidth=0.62)
 
         self.label = ctk.CTkLabel(self.frame, text="Paste Url Here:", text_color="black",
@@ -61,15 +72,15 @@ class VideoView:
 
         # History Button
         self.history_btn = ctk.CTkButton(root, text="Download History", width=630, height=40, corner_radius=20)
-        self.history_btn.pack(side="bottom", pady=50)
-
+        self.history_btn.pack(side="bottom", pady=40)
+    
     # Popup message
     def show_message(self, title, message):
         popup = ctk.CTkToplevel(self.root)
         popup.title(title)
         popup.transient(self.root)
         popup.grab_set()
-        popup.configure(fg_color="#1a1a1a")
+        popup.configure(fg_color="#110F0F",)
         popup.attributes("-alpha", 0.9)
 
         # Center
@@ -84,7 +95,7 @@ class VideoView:
         lbl = ctk.CTkLabel(popup, text=title, font=ctk.CTkFont(size=16, weight="bold"))
         lbl.place(relx=0.05, rely=0.08, relwidth=0.9, relheight=0.22)
 
-        msg_lbl = ctk.CTkLabel(popup, text=message, wraplength=380, justify="left")
+        msg_lbl = ctk.CTkLabel(popup, text=message, wraplength=380, justify="left",text_color="white")
         msg_lbl.place(relx=0.05, rely=0.32, relwidth=0.9, relheight=0.4)
 
         ok_btn = ctk.CTkButton(popup, text="OK", command=popup.destroy,
