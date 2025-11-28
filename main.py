@@ -11,7 +11,7 @@ if __name__ == "__main__":
     model = VideoModel()
     view = VideoView(root)
     controller = VideoController(model, view)
-    show_splash(root, "images/splash.gif", duration=6000)
+    show_splash(root, "images/splash.gif", duration=3000)
    
     
 

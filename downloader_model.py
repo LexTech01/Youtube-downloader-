@@ -15,3 +15,7 @@ class VideoModel:
 
     def get_history(self):
         return self.download_history
+     
+    def reset_history(self):
+        self.download_history.clear()
+        

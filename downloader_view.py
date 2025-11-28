@@ -13,7 +13,7 @@ class VideoView:
         self.root.geometry("850x950")
         self.root.minsize(800, 930)
         self.root.configure(fg_color="#5C899D")
-
+        self.root.iconbitmap("images/logo.ico")
         # Title
         self.title_label = ctk.CTkLabel(root, text="WinBix Youtube Videos Downloader",
                                         font=ctk.CTkFont(size=30, weight="bold"))
@@ -65,7 +65,7 @@ class VideoView:
         self.details_label.place(relx=0.1, rely=0.87, relwidth=0.8, relheight=0.06)
 
         # History Button
-        self.history_btn = ctk.CTkButton(root, text="Download History", width=630, height=40, corner_radius=20)
+        self.history_btn = ctk.CTkButton(root, text="Download History", width=630, height=40, corner_radius=20,fg_color="black")
         self.history_btn.pack(side="bottom", pady=40)
     
     # Popup message
