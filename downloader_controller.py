@@ -26,7 +26,7 @@ class VideoController:
         self.view.history_btn.configure(command=self.show_history_popup)
 
     # -----------------------
-    # Internet monitor (runs in background)
+    # Internet monitor
     # -----------------------
     def _start_internet_monitor(self):
         def monitor():
@@ -61,7 +61,7 @@ class VideoController:
                 self._ui(self.view.show_message, "Error", "Please paste a YouTube URL.")
                 return
 
-            # Optional: quick offline check (don't spam network because monitor is running)
+            # Optional: quick offline check 
             if not self.check_internet():
                 self._ui(self.view.show_message, "No Internet", "Cannot load video info while offline.")
                 return
@@ -79,7 +79,7 @@ class VideoController:
             title = info.get("title", "Unknown Title")
             self._ui(lambda: self.view.video_title.configure(text=title))
 
-            # Thumbnail (use cache)
+            # Thumbnail 
             thumb_url = info.get("thumbnail")
             if thumb_url:
                 if thumb_url in self._thumb_cache:
@@ -117,10 +117,9 @@ class VideoController:
         threading.Thread(target=task, daemon=True).start()
 
     def _apply_thumbnail(self, tk_img):
-        # apply the Tk image to the placeholder (must run on main thread)
+        # apply the Tk image to the placeholder 
         try:
             self.view.placeholder.configure(image=tk_img, text="")
-            # keep a reference on the placeholder so GC doesn't remove it
             self.view.placeholder.image = tk_img
         except Exception:
             pass
@@ -202,7 +201,8 @@ class VideoController:
                 self._ui(self.view.progress_bar.set, 0)
             except Exception as e:
                 self._ui(self.view.show_message, "Error", f"Download failed:\n{e}")
-                self._ui(lambda: self.view.details_label.configure(text=""))
+                self._ui(lambda: self.view.details_label.configure(text="Download failed  " \
+                ""))
                 self._ui(self.view.progress_bar.set, 0)
 
         threading.Thread(target=task, daemon=True).start()
@@ -232,7 +232,7 @@ class VideoController:
         pos_y = root_y + (root_h // 2) - (popup_h // 2)
         popup.geometry(f"{popup_w}x{popup_h}+{pos_x}+{pos_y}")
 
-        # Minimal offline banner (no heavy work)
+        # Minimal offline banner
         if not self.check_internet():
             banner = ctk.CTkLabel(popup, text="⚠️ No Internet Connection", text_color="#ff4d4d", font=("Arial", 13, "bold"))
             banner.pack(pady=(6, 4))
@@ -241,8 +241,8 @@ class VideoController:
         scroll_frame = ctk.CTkScrollableFrame(popup, width=400, height=240, fg_color="#141212")
         scroll_frame.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # Limit items to most recent 50 to avoid overload
-        MAX_ITEMS = 50
+        # Limit items to most recent 30 to avoid overload
+        MAX_ITEMS = 30
         recent = history[-MAX_ITEMS:]
 
         for i, path in enumerate(recent, start=max(1, len(history)-len(recent)+1)):
@@ -255,7 +255,7 @@ class VideoController:
             label.pack(side="left", padx=10, pady=5)
 
             open_state = "normal" if os.path.exists(path) else "disabled"
-            open_btn = ctk.CTkButton(item_frame, text="Open", width=60, state=open_state,
+            open_btn = ctk.CTkButton(item_frame, text="Open", width=50, state=open_state,
                                      command=lambda p=path: self.open_file_from_history(p))
             open_btn.pack(side="right", padx=6)
 
