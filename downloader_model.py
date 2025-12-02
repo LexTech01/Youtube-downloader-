@@ -6,16 +6,15 @@ class VideoModel:
     def __init__(self):
         if not os.path.exists(self.DOWNLOAD_DIR):
             os.makedirs(self.DOWNLOAD_DIR)
-        self.download_history = []  # last 10 downloads
+        self.download_history = [] 
 
     def add_to_history(self, path):
         self.download_history.insert(0, path)
         if len(self.download_history) > 10:
             self.download_history.pop()
-
+        
     def get_history(self):
         return self.download_history
      
     def reset_history(self):
         self.download_history.clear()
-        

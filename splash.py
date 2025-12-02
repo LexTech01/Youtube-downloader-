@@ -3,7 +3,7 @@ import tkinter as tk
 from itertools import count
 from PIL import Image, ImageTk, ImageSequence
 
-def show_splash(root, gif_path="images/splash.gif", duration=4000):
+def show_splash(root, gif_path="images/splash.gif", duration=3000):
     """
     Show splash inside the given CTk window (root)
     """
